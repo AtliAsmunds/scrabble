@@ -5,6 +5,10 @@ class Letter(arcade.Sprite):
     def __init__(self, letter, score, scale=1):
         self.letter = letter
         self.score = score
+        if letter == "BLANK":
+            self.blank = True
+        else:
+            self.blank = False
 
         self.image_file_name = f"tiles/letters_img/letter_{self.letter}.png"
 

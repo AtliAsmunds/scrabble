@@ -5,7 +5,7 @@ import copy
 from arcade.sprite_list import SpriteList
 from sprites import *
 from player import Player
-from user_setup import UserSettings
+from user_setup import UserSettings, BlankLetterSet
 from grid import Grid
 from random import randint
 
@@ -30,7 +30,11 @@ GRID_HEIGHT = ROW_COUNT*(HEIGHT+GRID_MARGIN)
 SCREEN_WIDTH = round(GRID_WIDTH)+INFO_SPACE
 SCREEN_HEIGHT = round(GRID_HEIGHT)+PLAYER_SPACE
 SCREEN_TITLE = "SKRAFL"
-BUTTON_NAMES = ['check']
+BUTTON_NAMES = {
+    'check': (1000, 400),
+    'reset': (1000, 800),
+    'confirm': (1000,600)
+}
 BONUSES = {
     '3w': [(0,0),(0,7),(0,14),(7,0),(7,14),(14,0),(14,7),(14,14)],
     '2l': [(0,3),(0,11),(2,6),(2,8),(3,0),(3,7),(3,14),(6,2),(6,6)\
@@ -97,8 +101,8 @@ class MyGame(arcade.Window):
         self.root.title('Player Settings')
         self.user_setup = UserSettings(self.root)
         self.root.mainloop()
-        self.player_1_name = self.user_setup.player_1 if self.user_setup.player_1 is not None else "Player 1"
-        self.player_2_name = self.user_setup.player_2 if self.user_setup.player_2 is not None else "Player 2"
+        self.player_1_name = self.user_setup.player_1 if self.user_setup.player_1 is not None else "Leikmaður 1"
+        self.player_2_name = self.user_setup.player_2 if self.user_setup.player_2 is not None else "Leikmaður 2"
         self.player_1 = Player(self.player_1_name)
         self.player_2 = Player(self.player_2_name)
         print(self.player_1.name)
@@ -123,12 +127,12 @@ class MyGame(arcade.Window):
         self.held_letters = []
         self.held_letter_position = []
 
-        self.button_list = arcade.SpriteList()
         self.pouch = arcade.SpriteList()
         self.tile_list = arcade.SpriteList()
         self.letter_rack = arcade.SpriteList()
         self.table_temp = arcade.SpriteList()
         self.table_perm = arcade.SpriteList()
+        self.button_list = arcade.SpriteList()
         self.held_letter = arcade.SpriteList()
 
         for letter, (score, amount) in LETTERS.items():
@@ -182,9 +186,9 @@ class MyGame(arcade.Window):
         # TODO: Put button positions into BUTTON_NAMES
         #       and maybe initialize in __init__
 
-        for name in BUTTON_NAMES:
+        for name, (x, y) in BUTTON_NAMES.items():
             button = Button(name, 1.5)
-            button.position = 1000, 200
+            button.position = x, y
             self.button_list.append(button)
 
 
@@ -193,10 +197,10 @@ class MyGame(arcade.Window):
         
         arcade.start_render()
         self.letter_rack.draw()
-        self.button_list.draw()
         self.tile_list.draw()
         self.table_temp.draw()
         self.table_perm.draw()
+        self.button_list.draw()
         #self.pouch.draw()
         if self.player_1_turn:
             self.player_1.held_letters.draw()
@@ -228,6 +232,7 @@ class MyGame(arcade.Window):
         for sprite in self.table_temp:
             if sprite not in temp_sprite_list:
                 temp_sprite_list.append(sprite)
+
         letters = arcade.get_sprites_at_point((x,y), temp_sprite_list)
 
 
@@ -259,6 +264,8 @@ class MyGame(arcade.Window):
             elif (button[0].name == 'check'):
                 # self.grid.check()
                 self.grid.check()
+            elif (button[0].name == 'confirm'):
+                self.play_game()
 
 
     
@@ -284,12 +291,13 @@ class MyGame(arcade.Window):
 
         if self.table_temp:
             table_letter, distance = arcade.get_closest_sprite(self.held_letters[0], self.table_temp)
+        if self.table_perm:
+            perm_letter, distance = arcade.get_closest_sprite(self.held_letters[0], self.table_perm)
 
-
+        if not player_letters:
+            player_letters = self.table_temp
         rack_letter, distance = arcade.get_closest_sprite(self.held_letters[0], player_letters)
-        
-        reset_position = True
-
+ 
         if arcade.check_for_collision(self.held_letters[0], rack_letter):
             if self.held_letters[0] in self.table_temp:
                 # player_letters.remove(self.held_letters[0])
@@ -308,14 +316,27 @@ class MyGame(arcade.Window):
             player_letters.append(self.held_letters[0])
             print('2')
 
+        elif self.table_perm and arcade.check_for_collision(self.held_letters[0], perm_letter):
+            reset_position = True
+            self.held_letter.remove(self.held_letters[0])
+            player_letters.append(self.held_letters[0])
+            print('2.5')
+
 
 
         elif arcade.check_for_collision(self.held_letters[0], tile):
 
             for i, dropped_letter in enumerate(self.held_letters):
                 dropped_letter.position = tile.center_x, tile.center_y
-                if dropped_letter in self.grid.word_list:
+                if dropped_letter in self.grid.word:
                     self.grid.remove_from_grid(dropped_letter)
+                if dropped_letter.blank:
+                    print("This is blank")
+                    self.root = Tk()
+                    self.user_setup = BlankLetterSet(self.root)
+                    self.root.mainloop()
+                    applied_letter = self.user_setup.letter_val
+                    dropped_letter.letter = applied_letter if applied_letter else 'BLANK'
                 self.grid.add_to_grid(tile.row, tile.col, dropped_letter)
             self.held_letter.remove(self.held_letters[0])
             self.table_temp.append(self.held_letters[0])
@@ -326,7 +347,7 @@ class MyGame(arcade.Window):
         elif arcade.check_for_collision(self.held_letters[0], rack):
             print(self.held_letters[0].letter)
 
-            for i, dropped_letter in enumerate(self.held_letters)
+            for i, dropped_letter in enumerate(self.held_letters):
                 dropped_letter.position = rack.center_x, rack.center_y
                 self.grid.remove_from_grid(dropped_letter)
             self.held_letter.remove(self.held_letters[0])
@@ -344,9 +365,10 @@ class MyGame(arcade.Window):
         self.held_letters = []
     
     def play_game(self):
-        for letter in self.table_temp:
-            self.table_perm.append(letter)
-            self.table_temp.remove(letter)
+        self.table_perm.extend([sprite for sprite in self.table_temp])
+        self.table_temp = SpriteList()
+        self.grid.word.clear()
+        self.grid.index_list.clear()
         
         self.player_1_turn = not self.player_1_turn
 
