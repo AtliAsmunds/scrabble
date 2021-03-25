@@ -20,10 +20,11 @@ SCREEN_WIDTH = round(GRID_WIDTH)+INFO_SPACE
 SCREEN_HEIGHT = round(GRID_HEIGHT)+PLAYER_SPACE
 SCREEN_TITLE = "SKRAFL"
 BUTTON_NAMES = {
-    'check': (1000, 400),
-    'reset': (1000, 800),
-    'confirm': (1000,600),
-    'draw': (1000, 500)
+    'check': (700, 75),
+    'reset': (900, 850),
+    'confirm': (920, 75),
+    'draw': (810, 75),
+    'pass': (1030, 75)
 }
 BONUSES = {
     '3w': [(0,0),(0,7),(0,14),(7,0),(7,14),(14,0),(14,7),(14,14)],

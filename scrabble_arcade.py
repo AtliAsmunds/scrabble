@@ -1,6 +1,5 @@
 from tkinter import Tk
 import arcade
-import copy
 
 from arcade.sprite_list import SpriteList
 from sprites import *
@@ -54,7 +53,7 @@ class MyGame(arcade.Window):
         self.player_1_turn = True
 
         self.grid = Grid(ROW_COUNT, COLUMN_COUNT, self.word_list)
-        arcade.set_background_color(arcade.color.ARMY_GREEN)
+        arcade.set_background_color(arcade.color.SAP_GREEN)
 
         self.held_letters = []
         self.held_letter_position = []
@@ -121,7 +120,7 @@ class MyGame(arcade.Window):
         #       and maybe initialize in __init__
 
         for name, (x, y) in BUTTON_NAMES.items():
-            button = Button(name, 1.5)
+            button = Button(name)
             button.position = x, y
             self.button_list.append(button)
 
@@ -158,8 +157,7 @@ class MyGame(arcade.Window):
             for i in range(index, len(self.table_temp) - 1):
                 self.table_temp[i] = self.table_temp[i+1]
             self.table_temp[len(self.table_temp) - 1] = card
-    def _remove_doubles(self, list):
-        pass
+
 
 
     def on_mouse_press(self, x, y, button, modifiers):
@@ -210,6 +208,8 @@ class MyGame(arcade.Window):
             elif (button[0].name == 'draw'):
                 if not self.turn_over:
                     self._switch_letters(player_letters)
+            elif (button[0].name == 'pass'):
+                self.player_1_turn = not self.player_1_turn
 
 
     
