@@ -1,5 +1,6 @@
+from sprites import BonusTile
 import numpy as np
-
+from constants import LETTERS, BONUSES
 
 class Grid:
 
@@ -13,7 +14,7 @@ class Grid:
         self.grid = []
         self.played_words = []
         self.temp_words = []
-        self.first_play = True
+        self.first_play = False
         self.letters_on_board = 0
         for row in range(self.row):
             self.grid.append([])
@@ -90,6 +91,7 @@ class Grid:
         return False
     def _validate_words(self):
         self.temp_words = self._check_words()
+
         for word in self.played_words:
             if word in self.temp_words:
                 self.temp_words.remove(word)
@@ -97,7 +99,8 @@ class Grid:
         print(self.temp_words)
         
         wrong_words = []
-        for word in self.temp_words:
+        joined_words = ["".join([sprite.letter for sprite in word]) for word in self.temp_words]
+        for word in joined_words:
             if word not in self.word_list:
                 wrong_words.append(word)
         
@@ -119,7 +122,8 @@ class Grid:
                 return False
         
         else:
-            nr_connected = self._check_connected(7,7)
+            checked_list = []
+            nr_connected = self._check_connected(7,7, checked_list)
             if nr_connected < self.letters_on_board:
                 print("Must connect to letters on board")
         
@@ -136,112 +140,99 @@ class Grid:
 
 
 
-
-        # if self._is_aligned()[0]:
-        #     string = ""
-        #     hori_sorted = sorted(indexed_letters, key= lambda x : x[1][1]) # Sorted by alignment on x-axis
-        #     print(hori_sorted)
-        #     row_index, col_index = hori_sorted[0][1]
-        #     row = self.grid[row_index]
-        #     if col_index > 0:
-        #         for i in row[col_index-1:0:-1]:
-        #             if i == None:
-        #                 break
-        #             col_index -=1
-            
-        #     for i in row[col_index:]:
-        #         if i == None:
-        #             break
-        #         string += str(i.letter)  # TODO: Muna að breyta í x.letter
-            
-        #     print(string)
-        #     string_list.append(string)
-
-        # if self._is_aligned()[1]:
-        #     string = ""
-        #     vert_sorted = sorted(indexed_letters, key = lambda x : x[1][0]) # Sorted by alignment on y-axis
-        #     print(vert_sorted)
-        #     row_index, col_index = vert_sorted[0][1]
-        #     if row_index > 0:
-        #         for i in self.grid[row_index-1:0:-1]:
-        #             if i[col_index] == None:
-        #                 break
-        #             row_index -=1
-            
-        #     for i in self.grid[row_index:]:
-        #         if i[col_index] == None:
-        #             break
-        #         string += i[col_index].letter  # TODO: Muna að breyta í x.letter
-        #     print(string)
-        #     string_list.append(string)
-        # for string in string_list:
-        #     if string in self.word_list:
-        #         print("RÉTT")
-        #     else:
-        #         print('RANGT')
-
     def _check_words(self):         # TODO: Gera mögulegt að spila út einn staf í byrjun
         words = []
         for row in self.grid:
-            string = ""
-            for col in row:
-                if col == None:
+            string = []
+            for letter in row:
+                if letter == None:
                     if len(string) > 1:
                         words.append(string)
-                    string = ""
+                    string = []
                 else:
-                    string += col.letter
+                    string.append(letter)
         transposed = np.array(self.grid).transpose()
 
         for row in transposed:
-            string = ""
-            for col in row:
-                if col == None:
+            string = []
+            for letter in row:
+                if letter == None:
                     if len(string) > 1:
                         words.append(string)
-                    string = ""
+                    string = []
                 else:
-                    string += col.letter
-        words = [letter for letter in words if letter != '']
+                    string.append(letter)
+        words = [letter for letter in words if letter != []]
+        print(words)
 
         return words
         
-    def play(self):
+    def play(self, player):
         if self.check() == True:
             self.played_words.extend(self.temp_words)
-            self.temp_words = []
+            score = 0
+            for word in self.temp_words:
+                for letter in word:
+                    score += letter.score
+
+            indexed_letters = list(zip(self.word, self.index_list))
+            print(self.temp_words)
+            for word, (x, y) in indexed_letters:
+                
+                if (x, y) in BONUSES['3l']:
+                    score += word.score * 2
+                elif (x, y) in BONUSES['2l']:
+                    score += word.score
+                elif (x, y) in BONUSES['3w']:
+                    score *= 3
+                elif (x, y) in BONUSES['2w']:
+                    score *= 2
+            
+            if len(self.word) == 7:
+                score += 50
+
+            player.score += score
+            print(score)
+            print(player.score)
+
+
+            self.temp_words.clear()
+            self.word.clear()
+            self.index_list.clear()
             if self.first_play:
                 self.first_play = False
 
+
         
 
-    def _check_connected(self, x, y, banned_direction=None):
-        if self.grid[x][y] == None:
+    def _check_connected(self, x, y, checked:list, banned_direction=None):
+        if (self.grid[x][y] == None) or ((x,y) in checked):
             return 0
+        checked.append((x,y))
         if not banned_direction:
-            left = self._check_connected(x,y-1, "right")
-            right = self._check_connected(x,y+1, "left")
-            up = self._check_connected(x-1,y, "down")
-            down = self._check_connected(x+1,y, "up")
+            left = self._check_connected(x,y-1, checked, "right")
+            right = self._check_connected(x,y+1,checked , "left")
+            up = self._check_connected(x-1,y,checked, "down")
+            down = self._check_connected(x+1,y,checked, "up")
         if banned_direction == 'right':
-            left = self._check_connected(x,y-1, "right")
+            left = self._check_connected(x,y-1,checked, "right")
             right = 0
-            up = self._check_connected(x-1,y, "down")
-            down = self._check_connected(x+1,y, "up")
+            up = self._check_connected(x-1,y,checked, "down")
+            down = self._check_connected(x+1,y,checked, "up")
         if banned_direction == 'left':
             left = 0
-            right = self._check_connected(x,y+1, "left")
-            up = self._check_connected(x-1,y, "down")
-            down = self._check_connected(x+1,y, "up")
+            right = self._check_connected(x,y+1, checked, "left")
+            up = self._check_connected(x-1,y, checked, "down")
+            down = self._check_connected(x+1,y, checked, "up")
         if banned_direction == 'up':
-            left = self._check_connected(x,y-1, "right")
-            right = self._check_connected(x,y+1, "left")
+            left = self._check_connected(x,y-1, checked, "right")
+            right = self._check_connected(x,y+1, checked, "left")
             up = 0
-            down = self._check_connected(x+1,y, "up")
+            down = self._check_connected(x+1,y, checked, "up")
         if banned_direction == 'down':
-            left = self._check_connected(x,y-1, "right")
-            right = self._check_connected(x,y+1, "left")
-            up = self._check_connected(x-1,y, "down")
+            left = self._check_connected(x,y-1, checked, "right")
+            right = self._check_connected(x,y+1, checked, "left")
+            up = self._check_connected(x-1,y, checked, "down")
             down = 0
         return 1 + up + down + left + right
 

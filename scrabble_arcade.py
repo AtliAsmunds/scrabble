@@ -5,82 +5,11 @@ import copy
 from arcade.sprite_list import SpriteList
 from sprites import *
 from player import Player
-from user_setup import UserSettings, BlankLetterSet
+from user_setup import UserSettings, BlankLetterSet, DrawLetterWindow
 from grid import Grid
 from random import randint
+from constants import *
 
-SCALE = 1.5
-
-ROW_COUNT = COLUMN_COUNT = 15
-
-
-WIDTH = round(30 * SCALE)
-HEIGHT = round(30 * SCALE)
-
-GRID_MARGIN = 5
-MARGIN = 50
-
-
-PLAYER_SPACE = round(200)
-INFO_SPACE = round(400)
-
-GRID_WIDTH = COLUMN_COUNT*(WIDTH+GRID_MARGIN)
-GRID_HEIGHT = ROW_COUNT*(HEIGHT+GRID_MARGIN)
-
-SCREEN_WIDTH = round(GRID_WIDTH)+INFO_SPACE
-SCREEN_HEIGHT = round(GRID_HEIGHT)+PLAYER_SPACE
-SCREEN_TITLE = "SKRAFL"
-BUTTON_NAMES = {
-    'check': (1000, 400),
-    'reset': (1000, 800),
-    'confirm': (1000,600)
-}
-BONUSES = {
-    '3w': [(0,0),(0,7),(0,14),(7,0),(7,14),(14,0),(14,7),(14,14)],
-    '2l': [(0,3),(0,11),(2,6),(2,8),(3,0),(3,7),(3,14),(6,2),(6,6)\
-          ,(6,8),(6,12),(7,3),(7,11),(8,2),(8,6),(8,8),(8,12),(11,0),\
-            (11,7),(11,14),(12,6),(12,8),(14,3),(14,11)],
-    '2w': [(1,1),(1,13),(2,2),(2,12),(3,3),(3,11),(4,4),(4,10)\
-          ,(10,4),(10,10),(11,3),(11,11),(12,2),(12,12),(13,1),(13,13)],
-    '3l': [(1,5),(1,9),(5,1),(5,5),(5,9),(5,13),(9,1),(9,5),(9,9),(9,13),(13,5),(13,9)],
-    'center': [(7,7)]
-}
-
-LETTERS = {
-    'A' : (1, 11),
-    'Á' : (3,2),
-    'B' : (5,1),
-    'D' : (5,1),
-    'Ð' : (2,4),
-    'E' : (3,3),
-    'É' : (7,1),
-    'F' : (3,3),
-    'G' : (3,3),
-    'H' : (4,1),
-    'I' : (1,7),
-    'Í' : (4,1),
-    'J' : (6,1),
-    'K' : (2,4),
-    'L' : (2,5),
-    'M' : (2,3),
-    'N' : (1,7),
-    'O' : (5,1),
-    'Ó' : (3,2),
-    'P' : (5,1),
-    'R' : (1,8),
-    'S' : (1,7),
-    'T' : (2,6),
-    'U' : (2,6),
-    'Ú' : (4,1),
-    'V' : (5,1),
-    'X' : (10,1),
-    'Y' : (6,1),
-    'Ý' : (5,1),
-    'Þ' : (7,1),
-    'Æ' : (4,2),
-    'Ö' : (6,1),
-    'BLANK' : (1,2)
-}
 
 
 class MyGame(arcade.Window):
@@ -97,6 +26,7 @@ class MyGame(arcade.Window):
         self.button_list = None
         self.table_temp = None
         self.table_perm = None
+        self.turn_over = False
         self.root = Tk()
         self.root.title('Player Settings')
         self.user_setup = UserSettings(self.root)
@@ -107,6 +37,8 @@ class MyGame(arcade.Window):
         self.player_2 = Player(self.player_2_name)
         print(self.player_1.name)
         print(self.player_2.name)
+
+
 
 
 
@@ -134,6 +66,8 @@ class MyGame(arcade.Window):
         self.table_perm = arcade.SpriteList()
         self.button_list = arcade.SpriteList()
         self.held_letter = arcade.SpriteList()
+
+        # Text variables
 
         for letter, (score, amount) in LETTERS.items():
             for _ in range(amount):
@@ -196,6 +130,10 @@ class MyGame(arcade.Window):
     def on_draw(self):
         
         arcade.start_render()
+
+        players_turn_text = "{} á leik".format(self.player_1_name if self.player_1_turn else self.player_2_name)
+
+
         self.letter_rack.draw()
         self.tile_list.draw()
         self.table_temp.draw()
@@ -207,6 +145,7 @@ class MyGame(arcade.Window):
         else:
             self.player_2.held_letters.draw()
         self.held_letter.draw()
+        arcade.draw_text(players_turn_text, 300, 120, arcade.color.YELLOW, 20)
 
     def pull_to_top(self, card, player_letters):
         try:
@@ -232,26 +171,28 @@ class MyGame(arcade.Window):
         for sprite in self.table_temp:
             if sprite not in temp_sprite_list:
                 temp_sprite_list.append(sprite)
+        if not self.turn_over:
+            letters = arcade.get_sprites_at_point((x,y), temp_sprite_list)
 
-        letters = arcade.get_sprites_at_point((x,y), temp_sprite_list)
 
 
+            print([letter.letter for letter in letters])
 
-        print([letter.letter for letter in letters])
+            if len(letters) > 0:
+                primary_letter = letters[-1]
 
-        if len(letters) > 0:
-            primary_letter = letters[-1]
+                self.held_letters = moved = [primary_letter]
+                self.held_letter_position = [self.held_letters[0].position]
+                self.pull_to_top(self.held_letters[0], player_letters)
 
-            self.held_letters = moved = [primary_letter]
-            self.held_letter_position = [self.held_letters[0].position]
-            self.pull_to_top(self.held_letters[0], player_letters)
-
-            if moved[0] in player_letters:
-                player_letters.remove(moved[0])
-            if moved[0] in self.table_temp:
-                self.table_temp.remove(moved[0])
-            self.held_letter.append(moved[0])
-            
+                if moved[0] in player_letters:
+                    self.origin = player_letters
+                    player_letters.remove(moved[0])
+                if moved[0] in self.table_temp:
+                    self.origin = self.table_temp
+                    self.table_temp.remove(moved[0])
+                self.held_letter.append(moved[0])
+                
                 
             
 
@@ -266,6 +207,9 @@ class MyGame(arcade.Window):
                 self.grid.check()
             elif (button[0].name == 'confirm'):
                 self.play_game()
+            elif (button[0].name == 'draw'):
+                if not self.turn_over:
+                    self._switch_letters(player_letters)
 
 
     
@@ -297,6 +241,8 @@ class MyGame(arcade.Window):
         if not player_letters:
             player_letters = self.table_temp
         rack_letter, distance = arcade.get_closest_sprite(self.held_letters[0], player_letters)
+
+        reset_position = True
  
         if arcade.check_for_collision(self.held_letters[0], rack_letter):
             if self.held_letters[0] in self.table_temp:
@@ -357,25 +303,88 @@ class MyGame(arcade.Window):
             
             reset_position = False
 
+
         if reset_position:
             for tile_index, letter in enumerate(self.held_letters):
                 letter.position = self.held_letter_position[tile_index]
+                if letter in self.held_letter:
+                    self.held_letter.remove(letter)
+                self.origin.append(letter)
+
         print(list(self.held_letter))
         print(list(self.table_temp))
         self.held_letters = []
     
     def play_game(self):
-        self.table_perm.extend([sprite for sprite in self.table_temp])
-        self.table_temp = SpriteList()
-        self.grid.word.clear()
-        self.grid.index_list.clear()
-        
-        self.player_1_turn = not self.player_1_turn
+        player = self.player_1 if self.player_1_turn else self.player_2
+        if self.grid.check() == True:
+            self.table_perm.extend([sprite for sprite in self.table_temp])
+            player.nr_of_letters -= len(self.table_temp)
+            self.table_temp = SpriteList()
+            self.grid.play(player)
+            self.grid.word.clear()
+            self.grid.index_list.clear()
+
+            for _ in range(player.nr_of_letters, 7):
+                if self.pouch:
+                    j = randint(0, len(self.pouch))
+                    letter_to_add = self.pouch[j]
+                    player.held_letters.append(letter_to_add)
+                    self.pouch.remove(letter_to_add)
+
+                else:
+                    pass    # TODO: Skrifa út að pokinn sé tómur og BRAKE
+
+            player.nr_of_letters = len(player.held_letters)
+
+            for i in range(1, player.nr_of_letters+1):
+                letter = player.held_letters[i-1]
+                letter.position = MARGIN+GRID_WIDTH//4+WIDTH*i+i*8,\
+                    MARGIN*1.5
+
+            if player.nr_of_letters == 0:
+                # GAME OVER
+                pass
+
+            else:
+                self.player_1_turn = not self.player_1_turn
+                self.turn_over = False
+    
+    def game_over(self):
+        leftover_player = self.player_1 if self.player_1.nr_of_letters > 0 else self.player_2
+
+        for letter in leftover_player.held_letters:
+            leftover_player.score -= letter.score
+    
+    def _switch_letters(self, player_letters):
+
+        self.root = Tk()
+        original_letters = [letter for letter in player_letters]
+        self.draw_window = DrawLetterWindow(self.root, player_letters)
+        self.root.mainloop()
+        if self.draw_window.letters_to_switch:
+            for sprite in original_letters:
+                if sprite.letter in self.draw_window.letters_to_switch:
+                    self.draw_window.letters_to_switch.remove(sprite.letter)
+                    x, y = sprite.position
+                    player_letters.remove(sprite)
+                    j = randint(0, len(self.pouch)-1)
+                    pouch_letter = self.pouch[j]
+                    pouch_letter.position = x, y
+                    player_letters.append(pouch_letter)
+                    self.pouch.remove(pouch_letter)
+                    self.pouch.append(sprite)
+            
+            self.turn_over = True
+            
+
+
 
 def get_wordlist(file_name):
     with open(file_name, 'r') as f:
         word_set = [word.strip().upper() for word in f.readlines()]
         return word_set
+
 
 def main():
     file_name = 'ordmyndir.txt'
