@@ -6,7 +6,6 @@ from sprites import *
 from player import Player
 from user_setup import UserSettings, BlankLetterSet, DrawLetterWindow
 from grid import Grid
-from random import randint
 from constants import *
 
 
@@ -57,6 +56,7 @@ class MyGame(arcade.Window):
 
         self.player_1.score = 0
         self.player_2.score = 0
+        self.pass_count = 0
 
         self.pouch = arcade.SpriteList()
         self.tile_list = arcade.SpriteList()
@@ -139,8 +139,8 @@ class MyGame(arcade.Window):
     def on_draw(self):
         
         arcade.start_render()
-
-        players_turn_text = "{} á leik".format(self.player_1.name if self.player_1_turn else self.player_2.name)
+        player = self.get_current_player()
+        players_turn_text = f"{player.name} á leik"
         self.player_1_text = f"{self.player_1.name}\nStig:{self.player_1.score}"
         self.player_2_text = f"{self.player_2.name}\nStig:{self.player_2.score}"
         
@@ -186,23 +186,22 @@ class MyGame(arcade.Window):
 
 
     def _hold_letter(self, player, letters):
-        primary_letter = letters[-1]
+        moved_letter = letters[-1]
 
-        self.held_letters = moved = [primary_letter]
-        self.held_letter_position = [self.held_letters[0].position]
+        self.held_letter.append(moved_letter)
+        self.held_letter_position = moved_letter.position
 
-        if moved[0] in player.held_letters:
-            self.pull_to_top(self.held_letters[0], player.held_letters)
+        if moved_letter in player.held_letters:
+            self.pull_to_top(moved_letter, player.held_letters)
         else:
-            self.pull_to_top(self.held_letters[0], self.table_temp)
+            self.pull_to_top(moved_letter, self.table_temp)
 
-        if moved[0] in player.held_letters:
+        if moved_letter in player.held_letters:
             self.origin = player.held_letters
-            player.held_letters.remove(moved[0])
-        elif moved[0] in self.table_temp:
+            player.held_letters.remove(moved_letter)
+        elif moved_letter in self.table_temp:
             self.origin = self.table_temp
-            self.table_temp.remove(moved[0])
-        self.held_letter.append(moved[0])
+            self.table_temp.remove(moved_letter)
 
 
     def _select_letter(self, player:Player, x, y):
@@ -243,6 +242,7 @@ class MyGame(arcade.Window):
                     self._switch_letters(player)
 
             elif (button[0].name == 'pass') and not self.is_game_over:
+                self.pass_count += 1
                 self.pass_turn(player)
 
 
@@ -251,14 +251,18 @@ class MyGame(arcade.Window):
         for letter in letters_in_play:
             player.held_letters.append(letter)
             self.table_temp.remove(letter)
+            self.grid.remove_from_grid(letter)
         player.position_letters()
-        
+
+        if self.pass_count >= 4:
+            self.game_over()
+
         self.player_1_turn = not self.player_1_turn
 
     def on_mouse_press(self, x, y, button, modifiers):
         self.error_text = ""
         self.wrong_words_text = ""
-        player = self.player_1 if self.player_1_turn else self.player_2
+        player = self.get_current_player()
 
         self._select_button(player, x, y)
 
@@ -266,10 +270,15 @@ class MyGame(arcade.Window):
             self._select_letter(player, x, y)
 
 
+    def get_current_player(self):
+        if self.player_1_turn:
+            return self.player_1
+        return self.player_2
+
 
     
     def on_mouse_motion(self, x: float, y: float, dx: float, dy: float):
-        for letter in self.held_letters:
+        for letter in self.held_letter:
             letter.center_x += dx
             letter.center_y += dy
 
@@ -278,93 +287,92 @@ class MyGame(arcade.Window):
     # TODO: REALLY need to refactor!
 
     def on_mouse_release(self, x: float, y: float, button: int, modifiers: int):
-        if len(self.held_letters) == 0:
+        if len(self.held_letter) == 0:
             return
-        
-        tile, distance = arcade.get_closest_sprite(self.held_letters[0], self.tile_list)
-        rack, distance = arcade.get_closest_sprite(self.held_letters[0], self.letter_rack)
 
-        if self.player_1_turn:
-            player_letters = self.player_1.held_letters
-        else:
-            player_letters = self.player_2.held_letters
-
-
-        print(list(self.held_letter))
-
-        if self.table_temp:
-            table_letter, distance = arcade.get_closest_sprite(self.held_letters[0], self.table_temp)
-        if self.table_perm:
-            perm_letter, distance = arcade.get_closest_sprite(self.held_letters[0], self.table_perm)
-
-        if not player_letters:
-            player_letters = self.table_temp
-        rack_letter, distance = arcade.get_closest_sprite(self.held_letters[0], player_letters)
+        held_letter = self.held_letter[0]
+        player = self.get_current_player()
+        player_letters = player.held_letters
+        tile, rack, rack_letter, table_letter, perm_letter = self._get_objects(held_letter, player_letters)
 
         reset_position = True
  
-        if arcade.check_for_collision(self.held_letters[0], rack_letter):
-            if self.held_letters[0] in self.table_temp:
-                reset_position = False
-            else:
-                reset_position = True
-            self.held_letter.remove(self.held_letters[0])
-            print('1')
+        if arcade.check_for_collision(held_letter, rack_letter):
+            reset_position = False if held_letter in self.table_temp else True
         
-        elif self.table_temp and arcade.check_for_collision(self.held_letters[0], table_letter):
+        elif self.table_temp and arcade.check_for_collision(held_letter, table_letter):
             reset_position = True
-            self.held_letter.remove(self.held_letters[0])
-            print('2')
 
-        elif self.table_perm and arcade.check_for_collision(self.held_letters[0], perm_letter):
+        elif self.table_perm and arcade.check_for_collision(held_letter, perm_letter):
             reset_position = True
-            self.held_letter.remove(self.held_letters[0])
-            print('2.5')
 
-
-
-        elif arcade.check_for_collision(self.held_letters[0], tile):
-
-            for i, dropped_letter in enumerate(self.held_letters):
-                dropped_letter.position = tile.center_x, tile.center_y
-                if dropped_letter in self.grid.word:
-                    self.grid.remove_from_grid(dropped_letter)
-                if dropped_letter.blank:
-                    print("This is blank")
-                    self.root = Tk()
-                    self.user_setup = BlankLetterSet(self.root)
-                    self.root.mainloop()
-                    applied_letter = self.user_setup.letter_val
-                    dropped_letter.letter = applied_letter if applied_letter else 'BLANK'
-                self.grid.add_to_grid(tile.row, tile.col, dropped_letter)
-            self.held_letter.remove(self.held_letters[0])
-            self.table_temp.append(self.held_letters[0])
-            print('3')
+        elif arcade.check_for_collision(held_letter, tile):     # TODO: Keep changing self.held_letters[0] to held_letter            
+            self._place_on_board(held_letter, tile)
             reset_position = False
 
-
-        elif arcade.check_for_collision(self.held_letters[0], rack):
-            print(self.held_letters[0].letter)
-
-            for i, dropped_letter in enumerate(self.held_letters):
-                dropped_letter.position = rack.center_x, rack.center_y
-                self.grid.remove_from_grid(dropped_letter)
-            self.held_letter.remove(self.held_letters[0])
-            player_letters.append(self.held_letters[0])
-            print('4')
-
-            
+        elif arcade.check_for_collision(held_letter, rack):
+            self._place_on_rack(held_letter, player_letters, rack)
             reset_position = False
 
 
         if reset_position:
-            for tile_index, letter in enumerate(self.held_letters):
-                letter.position = self.held_letter_position[tile_index]
-                if letter in self.held_letter:
-                    self.held_letter.remove(letter)
-                self.origin.append(letter)
+                held_letter.position = self.held_letter_position
+                self.origin.append(held_letter)
 
-        self.held_letters = []
+        self.held_letter.remove(held_letter)
+
+    def _get_objects(self, held_letter, player_letters):
+
+        tile = None
+        rack = None
+        rack_letter = None
+        table_letter = None
+        perm_letter = None
+
+        if not player_letters:
+            player_letters = self.table_temp
+        rack_letter = arcade.get_closest_sprite(held_letter, player_letters)[0]
+        if self.table_temp:
+            table_letter = arcade.get_closest_sprite(held_letter, self.table_temp)[0]
+        if self.table_perm:
+            perm_letter = arcade.get_closest_sprite(held_letter, self.table_perm)[0]
+        tile = arcade.get_closest_sprite(held_letter, self.tile_list)[0]
+        rack = arcade.get_closest_sprite(held_letter, self.letter_rack)[0]
+
+        return tile, rack, rack_letter, table_letter, perm_letter
+
+
+    def _place_on_board(self, held_letter, tile):
+        held_letter.position = tile.center_x, tile.center_y
+        if held_letter in self.grid.word:
+            self.grid.remove_from_grid(held_letter)
+        if held_letter.blank:
+            self._set_blank(held_letter)
+
+        self.grid.add_to_grid(tile.row, tile.col, held_letter)
+        self.table_temp.append(held_letter)
+    
+    def _place_on_rack(self, held_letter, player_letters, rack):
+            held_letter.position = rack.center_x, rack.center_y
+            self.grid.remove_from_grid(held_letter)
+            player_letters.append(held_letter)
+
+
+    def _set_blank(self, held_letter):
+        self.root = Tk()    
+        self.user_setup = BlankLetterSet(self.root) 
+        self.root.mainloop()    
+        applied_letter = self.user_setup.letter_val 
+        held_letter.letter = applied_letter if applied_letter else '0'
+
+    def play_letters(self, player):
+        self.table_perm.extend([sprite for sprite in self.table_temp])
+        player.nr_of_letters -= len(self.table_temp)
+        self.table_temp = SpriteList()
+        score = self.grid.play(player)
+        self.error_text = f"+{score} stig"
+        self.grid.word.clear()
+        self.grid.index_list.clear()
 
     
     def play_game(self):
@@ -373,19 +381,15 @@ class MyGame(arcade.Window):
         if self.turn_over:
             self.player_1_turn = not self.player_1_turn
             self.turn_over = False
+            self.pass_count = 0
         elif checked_results == True:
-            self.table_perm.extend([sprite for sprite in self.table_temp])
-            player.nr_of_letters -= len(self.table_temp)
-            self.table_temp = SpriteList()
-            self.grid.play(player)
-            self.grid.word.clear()
-            self.grid.index_list.clear()
-
+            self.pass_count = 0
+            self.play_letters(player)
             player.draw_letters(self.pouch)
 
             if not self.pouch:
-                pass                                                                        # TODO: Skrifa út að pokinn sé tómur og BRAKE
-
+                self.error_text = "Stafapoki er tómur"
+                return
 
             if player.nr_of_letters == 0:
                 # GAME OVER
@@ -394,6 +398,7 @@ class MyGame(arcade.Window):
             else:
                 self.player_1_turn = not self.player_1_turn
                 self.turn_over = False
+
         elif checked_results == False:
             self.error_text = "Enginn stafur er á borði\neða staðsetning þeirra\ner vitlaus."
         else:

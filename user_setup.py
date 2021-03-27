@@ -63,20 +63,22 @@ class DrawLetterWindow:
     def __init__(self, master, player_letters) -> None:
         self.master = master
         self.draw_frame = ttk.Frame(self.master)
-        self.draw_frame.pack()
+        self.draw_frame.grid()
         self.label_var = StringVar(value="Veldu allt að sjö stafi\n til þess að skipta út\n(Skildir að með bili)")
         self.info_label = ttk.Label(textvariable=self.label_var, justify="center",)
-        self.info_label.pack()
+        self.info_label.grid(row=0, columnspan=2, padx=10, pady=5)
         self.input_box = ttk.Entry()
-        self.input_box.pack()
-        self.get_button = ttk.Button(self.master, text="Staðfesta", command=self.get_letters).pack()
-        self.cancel_button = ttk.Button(self.master, text="Hætta", command=self.master.destroy).pack()
+        self.input_box.grid(row=1, columnspan=2, padx=10, pady=5)
+        self.get_button = ttk.Button(self.master, text="Staðfesta", command=self.get_letters).grid(row=2, column=0, padx=5, pady=5)
+        self.cancel_button = ttk.Button(self.master, text="Hætta", command=self.master.destroy).grid(row=2, column=1, padx=5, pady=5)
         self.player_letters = [sprite.letter for sprite in player_letters]
         self.letters_to_switch = []
 
     def get_letters(self):
         letters = self.input_box.get().upper().split(" ")
-        if 0 < len(letters) < 8:
+        if letters[0] == "":
+            self.label_var.set("Ekkert valið")
+        elif 0 < len(letters) < 8:
             for letter in letters:
                 if letter not in self.player_letters:
                     self.label_var.set(f"Stafurinn {letter} er ekki á hendi")
@@ -88,8 +90,8 @@ class DrawLetterWindow:
             self.master.destroy()
         elif len(letters) >= 8:
             self.input_box.delete(0, 'end')
-            self.label_var.set("Of margir stafir valdir") 
-                
+            self.label_var.set("Of margir stafir valdir")
+
 
 
 

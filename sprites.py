@@ -5,7 +5,7 @@ class Letter(arcade.Sprite):
     def __init__(self, letter, score, scale=1):
         self.letter = letter
         self.score = score
-        if letter == "BLANK":
+        if letter == "0":
             self.blank = True
         else:
             self.blank = False

@@ -188,12 +188,12 @@ class Grid:
 
             indexed_letters = list(zip(self.word, self.index_list))
             print(self.temp_words)
-            for word, (x, y) in indexed_letters:
+            for letter, (x, y) in indexed_letters:
                 
                 if (x, y) in BONUSES['3l']:
-                    score += word.score * 2
+                    score += letter.score * 2
                 elif (x, y) in BONUSES['2l']:
-                    score += word.score
+                    score += letter.score
                 elif (x, y) in BONUSES['3w']:
                     score *= 3
                 elif (x, y) in BONUSES['2w']:
@@ -212,6 +212,8 @@ class Grid:
             self.index_list.clear()
             if self.first_play:
                 self.first_play = False
+            
+            return score
 
 
         
