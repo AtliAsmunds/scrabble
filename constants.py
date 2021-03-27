@@ -9,22 +9,25 @@ HEIGHT = round(30 * SCALE)
 GRID_MARGIN = 5
 MARGIN = 50
 
-
 PLAYER_SPACE = round(200)
-INFO_SPACE = round(400)
+INFO_SPACE = round(250)
 
 GRID_WIDTH = COLUMN_COUNT*(WIDTH+GRID_MARGIN)
 GRID_HEIGHT = ROW_COUNT*(HEIGHT+GRID_MARGIN)
+
+MAT_X = MARGIN + (GRID_WIDTH // 4)
+MAT_Y = MARGIN * 1.5
+LETTER_ON_HAND = 7
 
 SCREEN_WIDTH = round(GRID_WIDTH)+INFO_SPACE
 SCREEN_HEIGHT = round(GRID_HEIGHT)+PLAYER_SPACE
 SCREEN_TITLE = "SKRAFL"
 BUTTON_NAMES = {
-    'check': (700, 75),
+    'check': (900, 200),
     'reset': (900, 850),
-    'confirm': (920, 75),
-    'draw': (810, 75),
-    'pass': (1030, 75)
+    'confirm': (900, 400),
+    'draw': (900, 300),
+    'pass': (900, 500)
 }
 BONUSES = {
     '3w': [(0,0),(0,7),(0,14),(7,0),(7,14),(14,0),(14,7),(14,14)],

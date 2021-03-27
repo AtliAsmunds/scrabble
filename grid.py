@@ -14,7 +14,7 @@ class Grid:
         self.grid = []
         self.played_words = []
         self.temp_words = []
-        self.first_play = False
+        self.first_play = True
         self.letters_on_board = 0
         for row in range(self.row):
             self.grid.append([])
@@ -120,12 +120,19 @@ class Grid:
             if self.grid[7][7] == None:
                 print("First play must be on center")
                 return False
+            if len(self.word) == 1:
+                if self.word[0].letter in self.word_list:
+                    return True
+                else:
+                    return [self.word[0].letter]
+        
         
         else:
             checked_list = []
             nr_connected = self._check_connected(7,7, checked_list)
             if nr_connected < self.letters_on_board:
                 print("Must connect to letters on board")
+                return False
         
         if not self._is_aligned():
             print(False)
@@ -171,7 +178,11 @@ class Grid:
         if self.check() == True:
             self.played_words.extend(self.temp_words)
             score = 0
-            for word in self.temp_words:
+            if self.first_play:
+                words = [[letter for letter in self.word]]
+            else:
+                words = self.temp_words
+            for word in words:
                 for letter in word:
                     score += letter.score
 
@@ -206,6 +217,8 @@ class Grid:
         
 
     def _check_connected(self, x, y, checked:list, banned_direction=None):
+        if (x > 14) or (x < 0) or (y > 14) or (y < 0):
+            return 0
         if (self.grid[x][y] == None) or ((x,y) in checked):
             return 0
         checked.append((x,y))
