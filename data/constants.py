@@ -1,27 +1,39 @@
-SCALE = 1.5
+##############################################################
+# This file is for the constants used in other scripts       #
+# Most of them are self explanatory but others are described #
+##############################################################
 
+SCALE = 1.5
 ROW_COUNT = COLUMN_COUNT = 15
 
-
+# Width of tiles and letters
 WIDTH = round(30 * SCALE)
 HEIGHT = round(30 * SCALE)
 
 GRID_MARGIN = 5
 MARGIN = 50
 
+# Space below board
 PLAYER_SPACE = round(200)
+
+# Space to the right of the board
 INFO_SPACE = round(250)
 
-GRID_WIDTH = COLUMN_COUNT*(WIDTH+GRID_MARGIN)
-GRID_HEIGHT = ROW_COUNT*(HEIGHT+GRID_MARGIN)
 
-MAT_X = MARGIN + (GRID_WIDTH // 4)
+BOARD_WIDTH = COLUMN_COUNT*(WIDTH+GRID_MARGIN)
+BOARD_HEIGHT = ROW_COUNT*(HEIGHT+GRID_MARGIN)
+
+# Mat/Rack measurments
+MAT_X = MARGIN + (BOARD_WIDTH // 4)
 MAT_Y = MARGIN * 1.5
-LETTER_ON_HAND = 7
 
-SCREEN_WIDTH = round(GRID_WIDTH)+INFO_SPACE
-SCREEN_HEIGHT = round(GRID_HEIGHT)+PLAYER_SPACE
+LETTERS_ON_HAND = 7
+
+SCREEN_WIDTH = round(BOARD_WIDTH)+INFO_SPACE
+SCREEN_HEIGHT = round(BOARD_HEIGHT)+PLAYER_SPACE
 SCREEN_TITLE = "SKRAFL"
+
+# Button names with their coordinates
 BUTTON_NAMES = {
     'check': (900, 200),
     'reset': (900, 850),
@@ -29,6 +41,8 @@ BUTTON_NAMES = {
     'draw': (900, 300),
     'pass': (900, 500)
 }
+
+#Bonuses and their coordinates
 BONUSES = {
     '3w': [(0,0),(0,7),(0,14),(7,0),(7,14),(14,0),(14,7),(14,14)],
     '2l': [(0,3),(0,11),(2,6),(2,8),(3,0),(3,7),(3,14),(6,2),(6,6)\
@@ -40,6 +54,7 @@ BONUSES = {
     'center': [(7,7)]
 }
 
+# Letters with their score value and amount in letter bag
 LETTERS = {
     'A' : (1, 11),
     'Á' : (3,2),
