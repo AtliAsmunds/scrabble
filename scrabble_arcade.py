@@ -1,3 +1,5 @@
+# Code on github: https://github.com/AtliAsmunds/scrabble.git
+
 import os
 import arcade
 from arcade.sprite_list import SpriteList
@@ -602,7 +604,7 @@ def get_wordlist(file_name):
 
 def main():
     """This is the main program"""
-    
+
     subdir = "data"
     file_name = 'ordmyndir.txt'
     path = os.path.join(subdir, file_name)
