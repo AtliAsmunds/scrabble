@@ -441,7 +441,7 @@ class MyGame(arcade.Window):
 
 
 def get_wordlist(file_name):
-    with open(file_name, 'r') as f:
+    with open(file_name, 'r', encoding='utf-8') as f:
         word_set = [word.strip().upper() for word in f.readlines()]
         return word_set
 
