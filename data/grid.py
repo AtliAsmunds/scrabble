@@ -182,7 +182,8 @@ class Grid:
                     string = []
                 else:
                     string.append(letter)
-            words.append(string)
+            if len(string) > 1:
+                words.append(string)
         
         # We then return the words list without the empty lists
         return [letter for letter in words if letter != []]
